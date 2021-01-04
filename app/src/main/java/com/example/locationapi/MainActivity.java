@@ -25,9 +25,13 @@ public class MainActivity extends AppCompatActivity {
 
     //Класс для определения местоположения
     private FusedLocationProviderClient fusedLocationClient;
+    //Для доступа к настройкам
     private SettingsClient settingsClient;
+    //Для сохранения данных запроса
     private LocationRequest locationRequest;
+    //Для определения настроек устройства
     private LocationSettingsRequest locationSettingsRequest;
+    //Используется для событий определения местоположения
     private LocationCallback locationCallback;
     private Location currentLocation;
 
