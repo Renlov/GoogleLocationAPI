@@ -1,16 +1,20 @@
 package com.example.locationapi;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Looper;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -76,13 +80,13 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
         buildLocationRequest();
         buildLocationCallBack();
         buildLocationSettingRequest();
 
-
     }
+
+
 
     private void startLocationUpdate() {
 
@@ -149,6 +153,31 @@ public class MainActivity extends AppCompatActivity {
         };
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        switch (requestCode) {
+            case CHECK_SETTING_CODE:
+                switch (resultCode) {
+                    case Activity
+                            .RESULT_OK:
+                        Log.d("MainActivity", "User has agreed to change location" + "settings");
+                    startLocationUpdate();
+                    break;
+
+                    case Activity.RESULT_CANCELED:
+                        Log.d("MainActivity", "User has not agreed to change location" + "settings");
+                        isLocationActive = false;
+                        startLocation.setEnabled(true);
+                        stopLocation.setEnabled(false);
+                        updateLocationUi();
+                        break;
+
+                }
+                break;
+        }
+    }
+
     private void updateLocationUi() {
         locationTextView.setText("" + currentLocation.getLatitude() +
                 "/" + currentLocation.getLongitude());
@@ -162,5 +191,34 @@ public class MainActivity extends AppCompatActivity {
         locationRequest.setInterval(10000);
         locationRequest.setFastestInterval(3000);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (isLocationActive && checkLocationPermission()) {
+            startLocationUpdate();
+        } else if (!checkLocationPermission()) {
+            requestLocationPermission();
+        }
+    }
+
+    private boolean checkLocationPermission() {
+        int permissionState = ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION);
+        return permissionState == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestLocationPermission() {
+        boolean shouldProvideRationale = ActivityCompat.shouldShowRequestPermissionRationale(this,
+                Manifest.permission.ACCESS_FINE_LOCATION);
+        if (shouldProvideRationale) {
+            showSnackBar();
+        }
+
+    }
+
+    private void showSnackBar() {
+
     }
 }
