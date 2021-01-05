@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.os.BuildCompat;
 
 import android.Manifest;
 import android.app.Activity;
@@ -12,8 +13,11 @@ import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.media.audiofx.BassBoost;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Looper;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -33,12 +37,14 @@ import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.google.android.gms.location.SettingsClient;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.text.DateFormat;
 import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final int REQUEST_LOCATION_PERMISSION = 333;
     private Button startLocation, stopLocation;
     private TextView locationTextView, locationUpdateTimeTextView;
     private static final int CHECK_SETTING_CODE = 111;
@@ -179,10 +185,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateLocationUi() {
-        locationTextView.setText("" + currentLocation.getLatitude() +
-                "/" + currentLocation.getLongitude());
 
-        locationUpdateTimeTextView.setText(DateFormat.getTimeInstance().format(new Date()));
+        if (currentLocation != null) {
+
+            locationTextView.setText("" + currentLocation.getLatitude() +
+                    "/" + currentLocation.getLongitude());
+
+            locationUpdateTimeTextView.setText(DateFormat.getTimeInstance().format(new Date()));
+        }
     }
 
     private void buildLocationRequest() {
@@ -213,12 +223,60 @@ public class MainActivity extends AppCompatActivity {
         boolean shouldProvideRationale = ActivityCompat.shouldShowRequestPermissionRationale(this,
                 Manifest.permission.ACCESS_FINE_LOCATION);
         if (shouldProvideRationale) {
-            showSnackBar();
+            showSnackBar("Location permission in needed for work",
+                    "OK", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            ActivityCompat.requestPermissions(
+                                    MainActivity.this, new String[] {
+                                            Manifest.permission.ACCESS_FINE_LOCATION
+                                    },
+                                    REQUEST_LOCATION_PERMISSION
+                            );
+
+                        }
+                    });
+        } else {
+            ActivityCompat.requestPermissions(
+                    MainActivity.this, new String[] {
+                            Manifest.permission.ACCESS_FINE_LOCATION
+                    },
+                    REQUEST_LOCATION_PERMISSION );
+
         }
 
     }
 
-    private void showSnackBar() {
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode == REQUEST_LOCATION_PERMISSION) {
+            if (grantResults.length <= 0){
+                Log.d("onRequestPermissions", "Request was cancelled");
+            } else if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if(isLocationActive) {
+                    startLocationUpdate();
+                }
+            } else {
+                showSnackBar("Turn on location on settings", "Settings",
+                        new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                Intent intent = new Intent();
+                                intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                                Uri uri = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null);
+                                intent.setData(uri);
+                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                startActivity(intent);
+                            }
+                        });
+            }
+        }
+    }
+
+    private void showSnackBar(final String mainText, final String action, View.OnClickListener listener) {
+        Snackbar.make(findViewById(android.R.id.content),
+                mainText, Snackbar.LENGTH_INDEFINITE).setAction(action, listener)
+                .show();
 
     }
 }
