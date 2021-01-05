@@ -35,8 +35,10 @@ import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResponse;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.google.android.gms.location.SettingsClient;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.text.DateFormat;
@@ -86,12 +88,36 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        stopLocation.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                stopLocationUpdates();
+            }
+        });
+
         buildLocationRequest();
         buildLocationCallBack();
         buildLocationSettingRequest();
 
     }
 
+    private void stopLocationUpdates() {
+
+        if(!isLocationActive) {
+            return;
+        }
+
+        fusedLocationClient.removeLocationUpdates(locationCallback)
+                .addOnCompleteListener(this, new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        isLocationActive = false;
+                        startLocation.setEnabled(true);
+                        stopLocation.setEnabled(false);
+
+                    }
+                });
+    }
 
 
     private void startLocationUpdate() {
@@ -199,8 +225,14 @@ public class MainActivity extends AppCompatActivity {
 
         locationRequest = new LocationRequest();
         locationRequest.setInterval(10000);
-        locationRequest.setFastestInterval(3000);
+        locationRequest.setFastestInterval(1000);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        stopLocationUpdates();
     }
 
     @Override
